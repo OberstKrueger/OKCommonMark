@@ -15,7 +15,8 @@ let package = Package(
         .target(
             name: "cmark",
             dependencies: [],
-            exclude: ["COPYING", "README.md", "changelog.txt"]
+            exclude: ["COPYING", "README.md", "changelog.txt"],
+            publicHeadersPath: "./"
         ),
         .target(
             name: "SwiftyCommonMark",
