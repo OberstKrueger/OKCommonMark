@@ -1,8 +1,8 @@
 import XCTest
-@testable import SwiftyCommonmark
+@testable import SwiftyCommonMark
 
-final class SwiftyCommonmarkTests: XCTestCase {
+final class SwiftyCommonMarkTests: XCTestCase {
     func testExample() throws {
-        XCTAssertEqual(SwiftyCommonmark().text, "Hello, World!")
+        XCTAssertEqual(SwiftyCommonMark().text, "Hello, World!")
     }
 }

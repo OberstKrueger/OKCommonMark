@@ -3,22 +3,27 @@
 import PackageDescription
 
 let package = Package(
-    name: "SwiftyCommonmark",
+    name: "SwiftyCommonMark",
     products: [
         .library(
-            name: "SwiftyCommonmark",
-            targets: ["SwiftyCommonmark"]
+            name: "SwiftyCommonMark",
+            targets: ["SwiftyCommonMark"]
         ),
     ],
     dependencies: [],
     targets: [
         .target(
-            name: "SwiftyCommonmark",
-            dependencies: []
+            name: "cmark",
+            dependencies: [],
+            exclude: ["COPYING", "README.md", "changelog.txt"]
+        ),
+        .target(
+            name: "SwiftyCommonMark",
+            dependencies: ["cmark"]
         ),
         .testTarget(
-            name: "SwiftyCommonmarkTests",
-            dependencies: ["SwiftyCommonmark"]
+            name: "SwiftyCommonMarkTests",
+            dependencies: ["SwiftyCommonMark"]
         ),
     ]
 )
