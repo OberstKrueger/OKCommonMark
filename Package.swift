@@ -1,4 +1,4 @@
-// swift-tools-version:5.5
+// swift-tools-version:5.6
 
 import PackageDescription
 
@@ -15,7 +15,11 @@ let package = Package(
         .target(
             name: "cmark",
             dependencies: [],
-            exclude: ["COPYING", "README.md", "changelog.txt"],
+            exclude: [
+                "COPYING",
+                "README.md",
+                "changelog.txt"
+            ],
             publicHeadersPath: "./"
         ),
         .target(
