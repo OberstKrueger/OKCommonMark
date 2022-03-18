@@ -28,7 +28,10 @@ let package = Package(
         ),
         .testTarget(
             name: "SwiftyCommonMarkTests",
-            dependencies: ["SwiftyCommonMark"]
+            dependencies: ["SwiftyCommonMark"],
+            resources: [
+                .process("SPEC.md")
+            ]
         ),
     ]
 )
