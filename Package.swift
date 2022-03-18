@@ -30,7 +30,13 @@ let package = Package(
             name: "SwiftyCommonMarkTests",
             dependencies: ["SwiftyCommonMark"],
             resources: [
-                .process("SPEC.md")
+                .process("spec.md"),
+                .process("specHardBreaks.html"),
+                .process("specNoBreaks.html"),
+                .process("specSafe.html"),
+                .process("specSmart.html"),
+                .process("specSourcePos.html"),
+                .process("specUnsafe.html")
             ]
         ),
     ]
