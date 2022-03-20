@@ -4,11 +4,15 @@ import cmark
 public extension String {
     func markdownToHTML(_ options: [CommonmarkOptions] = []) -> String? {
         let reduced: Int32 = options.reduce(0, {$0 + (1 << $1.rawValue)})
+        var result: String?
 
-        if let processed = cmark_markdown_to_html(self, strlen(self), reduced) {
-            return String(cString: processed)
-        } else {
-            return nil
+        self.withCString { pointer in
+            if let processed = cmark_markdown_to_html(pointer, strlen(pointer), reduced) {
+                result = String(cString: processed)
+                free(processed)
+            }
         }
+        
+        return result
     }
 }
