@@ -1,7 +1,7 @@
 import XCTest
-@testable import SwiftyCommonMark
+@testable import OKCommonMark
 
-final class SwiftyCommonMarkTests: XCTestCase {
+final class OKCommonMarkTests: XCTestCase {
     func testSpec() {
         let  tests: [(title: String, options: [CommonmarkOptions])] = [
             ("HardBreaks", [.hardBreaks]),

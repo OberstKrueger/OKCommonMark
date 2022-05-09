@@ -1,3 +1,3 @@
-# SwiftyCommonMark
+# OKCommonMark
 
 A description of this package.

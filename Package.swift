@@ -3,11 +3,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "SwiftyCommonMark",
+    name: "OKCommonMark",
     products: [
         .library(
-            name: "SwiftyCommonMark",
-            targets: ["SwiftyCommonMark"]
+            name: "OKCommonMark",
+            targets: ["OKCommonMark"]
         ),
     ],
     dependencies: [],
@@ -23,12 +23,12 @@ let package = Package(
             publicHeadersPath: "./"
         ),
         .target(
-            name: "SwiftyCommonMark",
+            name: "OKCommonMark",
             dependencies: ["cmark"]
         ),
         .testTarget(
-            name: "SwiftyCommonMarkTests",
-            dependencies: ["SwiftyCommonMark"],
+            name: "OKCommonMarkTests",
+            dependencies: ["OKCommonMark"],
             resources: [
                 .process("spec.md"),
                 .process("specHardBreaks.html"),
