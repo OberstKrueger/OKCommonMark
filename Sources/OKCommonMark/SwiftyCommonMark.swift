@@ -2,7 +2,7 @@ import Foundation
 import cmark
 
 public extension String {
-    func markdownToHTML(_ options: [CommonmarkOptions] = []) -> String? {
+    func markdownToHTML(_ options: CommonmarkOptions...) -> String? {
         let reduced: Int32 = options.reduce(0, {$0 + (1 << $1.rawValue)})
         var result: String?
 
