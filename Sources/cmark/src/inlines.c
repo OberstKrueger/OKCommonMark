@@ -52,6 +52,7 @@ typedef struct bracket {
 #define FLAG_SKIP_HTML_CDATA        (1u << 0)
 #define FLAG_SKIP_HTML_DECLARATION  (1u << 1)
 #define FLAG_SKIP_HTML_PI           (1u << 2)
+#define FLAG_SKIP_HTML_COMMENT      (1u << 3)
 
 typedef struct {
   cmark_mem *mem;
@@ -66,6 +67,7 @@ typedef struct {
   bracket *last_bracket;
   bufsize_t backticks[MAXBACKTICKS + 1];
   bool scanned_for_backticks;
+  bool no_link_openers;
 } subject;
 
 static CMARK_INLINE bool S_is_line_end_char(char c) {
@@ -207,6 +209,7 @@ static void subject_from_buf(cmark_mem *mem, int line_number, int block_offset, 
     e->backticks[i] = 0;
   }
   e->scanned_for_backticks = false;
+  e->no_link_openers = true;
 }
 
 static CMARK_INLINE int isbacktick(int c) { return (c == '`'); }
@@ -392,13 +395,14 @@ static void S_normalize_code(cmark_strbuf *s) {
 // Parse backtick code section or raw backticks, return an inline.
 // Assumes that the subject has a backtick at the current position.
 static cmark_node *handle_backticks(subject *subj, int options) {
+  bufsize_t initpos = subj->pos;
   cmark_chunk openticks = take_while(subj, isbacktick);
   bufsize_t startpos = subj->pos;
   bufsize_t endpos = scan_to_closing_backticks(subj, openticks.len);
 
   if (endpos == 0) {      // not found
     subj->pos = startpos; // rewind
-    return make_str(subj, subj->pos, subj->pos, openticks);
+    return make_str(subj, initpos, initpos + openticks.len - 1, openticks);
   } else {
     cmark_strbuf buf = CMARK_BUF_INIT(subj->mem);
 
@@ -551,6 +555,9 @@ static void push_bracket(subject *subj, bool image, cmark_node *inl_text) {
   b->position = subj->pos;
   b->bracket_after = false;
   subj->last_bracket = b;
+  if (!image) {
+    subj->no_link_openers = false;
+  }
 }
 
 // Assumes the subject has a c at the current position.
@@ -904,12 +911,23 @@ static cmark_node *handle_pointy_brace(subject *subj, int options) {
   // finally, try to match an html tag
   if (subj->pos + 2 <= subj->input.len) {
     int c = subj->input.data[subj->pos];
-    if (c == '!') {
+    if (c == '!' && (subj->flags & FLAG_SKIP_HTML_COMMENT) == 0) {
       c = subj->input.data[subj->pos+1];
-      if (c == '-') {
-        matchlen = scan_html_comment(&subj->input, subj->pos + 2);
-        if (matchlen > 0)
-          matchlen += 2; // prefix "<-"
+      if (c == '-' && subj->input.data[subj->pos+2] == '-') {
+	if (subj->input.data[subj->pos+3] == '>') {
+	  matchlen = 4;
+	} else if (subj->input.data[subj->pos+3] == '-' &&
+                   subj->input.data[subj->pos+4] == '>') {
+          matchlen = 5;
+        } else {
+          matchlen = scan_html_comment(&subj->input, subj->pos + 1);
+          if (matchlen > 0) {
+            matchlen += 1; // prefix "<"
+	  } else { // no match through end of input: set a flag so
+		   // we don't reparse looking for -->:
+	    subj->flags |= FLAG_SKIP_HTML_COMMENT;
+	  }
+	}
       } else if (c == '[') {
         if ((subj->flags & FLAG_SKIP_HTML_CDATA) == 0) {
           matchlen = scan_html_cdata(&subj->input, subj->pos + 2);
@@ -1108,15 +1126,15 @@ static cmark_node *handle_close_bracket(subject *subj) {
     return make_str(subj, subj->pos - 1, subj->pos - 1, cmark_chunk_literal("]"));
   }
 
-  if (!opener->active) {
+  // If we got here, we matched a potential link/image text.
+  // Now we check to see if it's a link/image.
+  is_image = opener->image;
+
+  if (!is_image && subj->no_link_openers) {
     // take delimiter off stack
     pop_bracket(subj);
     return make_str(subj, subj->pos - 1, subj->pos - 1, cmark_chunk_literal("]"));
   }
-
-  // If we got here, we matched a potential link/image text.
-  // Now we check to see if it's a link/image.
-  is_image = opener->image;
 
   after_link_text_pos = subj->pos;
 
@@ -1213,21 +1231,11 @@ match:
   process_emphasis(subj, opener->position);
   pop_bracket(subj);
 
-  // Now, if we have a link, we also want to deactivate earlier link
-  // delimiters. (This code can be removed if we decide to allow links
+  // Now, if we have a link, we also want to deactivate links until
+  // we get a new opener. (This code can be removed if we decide to allow links
   // inside links.)
   if (!is_image) {
-    opener = subj->last_bracket;
-    while (opener != NULL) {
-      if (!opener->image) {
-        if (!opener->active) {
-          break;
-        } else {
-          opener->active = false;
-        }
-      }
-      opener = opener->previous;
-    }
+    subj->no_link_openers = true;
   }
 
   return NULL;
@@ -1380,9 +1388,11 @@ static int parse_inline(subject *subj, cmark_node *parent, int options) {
 // Parse inlines from parent's string_content, adding as children of parent.
 void cmark_parse_inlines(cmark_mem *mem, cmark_node *parent,
                          cmark_reference_map *refmap, int options) {
+  int internal_offset = parent->type == CMARK_NODE_HEADING ?
+    parent->as.heading.internal_offset : 0;
   subject subj;
   cmark_chunk content = {parent->data, parent->len};
-  subject_from_buf(mem, parent->start_line, parent->start_column - 1 + parent->internal_offset, &subj, &content, refmap);
+  subject_from_buf(mem, parent->start_line, parent->start_column - 1 + internal_offset, &subj, &content, refmap);
   cmark_chunk_rtrim(&subj.input);
 
   while (!is_eof(&subj) && parse_inline(&subj, parent, options))
