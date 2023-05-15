@@ -9,7 +9,7 @@ public extension String {
         self.withCString { pointer in
             if let processed = cmark_markdown_to_html(pointer, strlen(pointer), reduced) {
                 result = String(cString: processed)
-                free(processed)
+                processed.deallocate()
             }
         }
         
