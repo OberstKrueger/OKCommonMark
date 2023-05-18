@@ -12,7 +12,7 @@ public extension String {
                 processed.deallocate()
             }
         }
-        
+
         return result
     }
 }
